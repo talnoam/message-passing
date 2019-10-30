@@ -86,35 +86,16 @@ ce_loss = nn.CrossEntropyLoss(reduction='mean')
 bce_loss = nn.BCEWithLogitsLoss()
 bce_loss_withoutLogists = nn.BCELoss()
 def loss_function(yhat,edge_labels,node_labels):
-	node_class = yhat[0]
 	edge_class = yhat[1]
-	node_edge_attention =  yhat[2]
 	edge_edge_attention = yhat[3]
 
-	batch_s = len(node_class)
-	
-	node_labels[ node_labels < 2 ] = 0
-	node_labels[ node_labels > 1 ] = 1
-	
-	node_loss = ce_loss(node_class,node_labels)
+	batch_s = len(edge_class)
 	
 	edge_loss = bce_loss(edge_class,edge_labels)
 	
-	node_edge_loss = bce_loss_withoutLogists(node_edge_attention,edge_labels)
 	edge_edge_loss = bce_loss_withoutLogists(edge_edge_attention,edge_labels)
 
-	return node_loss+edge_loss+node_edge_loss+edge_edge_loss
-
-def node_loss_function(yhat,edge_labels,node_labels):
-	node_class = yhat[0]
-	edge_class = yhat[1]
-	
-	node_labels[ node_labels < 2 ] = 0
-	node_labels[ node_labels > 1 ] = 1
-	
-	node_loss = ce_loss(node_class,node_labels)
-	
-	return node_loss
+	return edge_loss+edge_edge_loss
 
 def edge_loss_function(yhat,edge_labels,node_labels):
 	node_class = yhat[0]
@@ -138,7 +119,7 @@ db = DataBunch(train_dl=dataset_loader,valid_dl=dataset_loader_valid,collate_fn=
 
 #learn = Learner(db,gnn_edge,loss_func=edge_loss_function)
 #learn_1 = Learner(db,gnn_node,loss_func=node_loss_function)
-learn_2 = Learner(db,gnn_double,loss_func=loss_function)
+learn = Learner(db,gnn_double,loss_func=loss_function)
 
 def write_to_file(filename,trainloss,valloss):
 	f = open(filename,'a')
@@ -173,9 +154,9 @@ for epoch_i in range(100):
 	# write_to_file('model_gnn_node_loss.txt',train_loss,val_loss)
 	# torch.save(gnn_node, 'model_gnn_node_'+str(epoch_i)+'.pt')
 	
-	learn_2.fit(1,lr=lr)
-	train_loss = np.array([x.item() for x in learn_2.recorder.losses])
-	val_loss = learn_2.recorder.val_losses[0]
+	learn.fit(1,lr=lr)
+	train_loss = np.array([x.item() for x in learn.recorder.losses])
+	val_loss = learn.recorder.val_losses[0]
 	write_to_file('model_gnn_auxEloss_loss.txt',train_loss,val_loss)
 
 	torch.save(gnn_double, 'model_gnn_auxEloss_'+str(epoch_i)+'.pt')
